@@ -1,0 +1,5 @@
+Camera Thread Starts
+    -Stores current frame as public variable
+
+Game program makes sure the Car is inbetween cones
+    -if not for 5 seconds lose points, if not for 20 seconds, game over
