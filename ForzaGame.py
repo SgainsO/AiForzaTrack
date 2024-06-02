@@ -1,10 +1,9 @@
 from Vision import Vision
 import time
 import threading
+import keyboard
 import pyautogui
 
-
-Vision().ReturnLabeledVideo()
 
 class ForzaGame():
     def __init__(self):
@@ -12,15 +11,21 @@ class ForzaGame():
         print("Please navigate to the EventLab Course Creater before we began")
         self.centerTensor = [802, 640, 787, 820]  # will use Y to See when the cones are behind
         self.vision = Vision()
-        self.stop_timmer = threading.event()
-        self.timerFinished = threading.event()
-        self.timeOut = threading.Event
         self.points = 0
 
+        self.stop_timer = threading.Event()
+        self.timerFinished = threading.Event()
+        self.timeOut = threading.Event()
+
         visionThread = threading.Thread(target= self.vision.twoClosestCones)
-        endTime = threading.Thread(target=self.timer, args=(15, ))
+        endTime = threading.Thread(target=self.timer, args=(30, ))
+        mainControls = threading.Thread(target=self.MainGame)
+
+        mainControls.start()
         endTime.start()
-        visionThread.start()
+        
+
+        self.vision.twoClosestCones()
 
     def timer(self, duration):
         print(f"Timer started for {duration} seconds.")
@@ -50,19 +55,17 @@ class ForzaGame():
     def MainGame(self):
         running = True
         while running:
-            pressed_key = pyautogui.getKey()
-            if pressed_key in ["w", "a", "s", "d", "q", "e"]:
-                pyautogui.press(pressed_key)
+            self.checkGameUpdate()
     
 
     def checkNoConesForFive(self):
-        self.stop_timmer.clear()
+        self.stop_timer.clear()
         noCones = True
         timerThread = threading.Thread(target= self.timer, args = (5))
         timerThread.start()
         while not self.timerFinished.is_set():
             if len(self.vision.currentBox) > 0:
-                self.stop_timmer.set()
+                self.stop_timer.set()
                 noCones = False
             self.points -= 1
         self.timerFinished.clear()
@@ -72,14 +75,41 @@ class ForzaGame():
         if len(self.vision.currentBox) == 2:
             values = []
             for index, box in enumerate(self.vision.currentBox):
-                values[index] = box[0] - self.centerTensor[0]
+                values.append(box[0] - self.centerTensor[0])
             if values[0] * values[1] > 0:                       #It is not inbetween 
+                self.points -= 5
                 return False
             else:
-                self.points -= 5
+                print("In between!!")
                 return True
+    def CheckConeInScene(self):
+        if(len(self.vision.currentBox) != 0):
+            return False
+        else:
+            return True
+    
+
+    
     def lookAroundForCones(self):
-        pass
+        print("You may have won: looking now")
+        pyautogui.keyDown("top")
+        pyautogui.keyDown("left")
+        if not self.CheckConeInScene():
+            return True
+        pyautogui.keyUp("top")
+        pyautogui.keyDown("down")
+        if not self.CheckConeInScene():
+            return True
+        pyautogui.keyUp("left")
+        if not self.CheckConeInScene():
+            return True
+        pyautogui.keyDown("right")
+        if not self.CheckConeInScene():
+            return True
+        pyautogui.keyUp("down")    
+        if not self.CheckConeInScene():
+            return True
+        pyautogui.keyUp("right")
     def checkBehindHood(self):
         if len(self.vision.currentBox) == 2:
             for box in self.vision.currentBox:
@@ -95,18 +125,13 @@ class ForzaGame():
             if(self.checkNoConesForFive):
                 if not self.lookAroundForCones():
                     self.Win()
+                    print("You win! " + str(self.points) + " points")
                 else:
                     self.points -= 15
         elif self.timeOut.is_set():
+            print("You Lose! " + str(self.points) + " points")
             self.Loss()
             
-        
 
-
-            
-
-
-
-   
-
-                
+Vision().ReturnLabeledVideo()
+#ForzaGame()
