@@ -12,22 +12,21 @@ class ForzaGame():
         self.centerTensor = [802, 600, 787, 820]  # will use Y to See when the cones are behind
         self.vision = Vision()
         self.points = 0
+        self.falseAlerts = 0
 
-    #    self.stop_timer = threading.Event()
-    #    self.timerFinished = threading.Event()
-    #    self.timeOut = threading.Event()
+        self.stop_timer = threading.Event()
+        self.timerFinished = threading.Event()
+        self.timeOut = threading.Event()
 
-        visionThread = threading.Thread(target= self.vision.twoClosestCones)
-     #   endTime = threading.Thread(target=self.timer, args=(30, ))
+#        endTime = threading.Thread(target=self.timer, args=[60])  #TIME FOR AUTO END
         mainControls = threading.Thread(target=self.MainGame)
 
-
-        visionThread.start()
         mainControls.start()
-    #    endTime.start()
+#        endTime.start()
         #MainGame.start()
     #    self.MainGame()
         self.vision.twoClosestCones()
+        print("Vision Stopped")
 
     def timer(self, duration):
         print(f"Timer started for {duration} seconds.")
@@ -36,6 +35,7 @@ class ForzaGame():
             if self.stop_timer.is_set():
                 print("Timer stopped early.")
                 return
+            self.vision.twoConesRunOnce()
             time.sleep(0.1)  # Sleep for a short duration to prevent busy-waiting
         print("Timer ended.")
         self.timerFinished.set()
@@ -43,6 +43,7 @@ class ForzaGame():
     def Win(self):
         self.points += 19
         pyautogui.press('esc')
+        time.sleep(5)
         return True
     
     def Loss(self):
@@ -55,33 +56,32 @@ class ForzaGame():
         while time.time() - start_time < 1:
             pyautogui.press('q')  # Hold the 'q' key
 
-        
-
     def StartNew(self):
         pyautogui.press('right')
         pyautogui.press('down')
         pyautogui.press('enter')
 
     def MainGame(self):
+        pyautogui.press('esc')
+        time.sleep(3)
         running = True
         while running:
             print(self.vision.currentBox)
-        #    self.checkGameUpdate()
-            self.checkBehindHood()   
- 
+            self.checkGameUpdate()
 
-    def checkNoConesForFive(self):
-        self.stop_timer.clear()
-        noCones = True
-        timerThread = threading.Thread(target= self.timer, args = (5))
-        timerThread.start()
-        while not self.timerFinished.is_set():
-            if len(self.vision.currentBox) > 0:
-                self.stop_timer.set()
-                noCones = False
-            self.points -= 1
-        self.timerFinished.clear()
-        return noCones
+
+    def checkNoCones(self):
+        print("There may not be any cones")
+        runs = 0
+        hits = 0
+        while runs < 1000:
+            if len(self.vision.currentBox) == 0:
+                hits += 1
+            if hits == 750:
+                self.falseAlerts += 1
+                return False
+            runs += 1
+        return True
         
     def checkInBetween(self):
         if len(self.vision.currentBox) == 2:
@@ -94,7 +94,7 @@ class ForzaGame():
                 self.points -= 5
                 return False
             else:
-                print("In between!!")
+    #            print("In between!!")
                 return True
             
     def CheckConeInScene(self):
@@ -139,13 +139,13 @@ class ForzaGame():
         if self.checkBehindHood() and self.checkInBetween():
             self.points += 10
         elif len(self.vision.currentBox) == 0:
-            if(self.checkNoConesForFive):
+            if(self.checkNoCones):
                 if not self.lookAroundForCones():
                     self.Win()
                     print("You win! " + str(self.points) + " points")
                 else:
                     self.points -= 15
-        elif self.timeOut.is_set():
+        elif self.falseAlerts == 5:
             print("You Lose! " + str(self.points) + " points")
             self.Loss()
             

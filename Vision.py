@@ -45,20 +45,40 @@ class Vision():
                     
                     y_max = b[3] - b[1]
                     x_max = b[2] - b[0]
-            #        for i in range(2):
-            #            if y_max > biggest[i][3] - biggest[i][1] and x_max > biggest[i][2] - biggest[i][0]:
-            #                ann.box_label(b, self.model.names[int(c)])
-                    #biggest[i] = box.xyxy[0]
-        #            for value in b:
-        #                print(value[0])
+
                     if len(biggest) < 2:
                         biggest.append(b)
             
             self.currentBox = biggest
-
+        #    print(self.currentBox)
             if keyboard.is_pressed('q'):
                 lastKey = True
+    
+    def twoConesRunOnce(self):
+        lastKey = False
+        frame = self.display.grab(self.bounding_box)
+        frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGRA2BGR)
+        labels = self.model.predict(source = frame, conf = .50, save = False, verbose = False)
+
+        biggest = []
+        for r in labels: 
+            boxes = r.boxes
+
+            for box in boxes:
+                b = box.xyxy[0] #(top-Left x) (top-Left Y) (Bottom-Right x) (Bottom-Right y))
+                print(b)
+                c = box.cls
+                
+                y_max = b[3] - b[1]
+                x_max = b[2] - b[0]
+
+                if len(biggest) < 2:
+                    biggest.append(b)
         
+        self.currentBox = biggest
+        print(self.currentBox)
+
+
     
     def ReturnLabeledVideo(self):
         ret = True  # Initialize success flag
@@ -86,12 +106,7 @@ class Vision():
                     
                     y_max = b[3] - b[1]
                     x_max = b[2] - b[0]
-            #        for i in range(2):
-            #            if y_max > biggest[i][3] - biggest[i][1] and x_max > biggest[i][2] - biggest[i][0]:
-            #                ann.box_label(b, self.model.names[int(c)])
-                    #biggest[i] = box.xyxy[0]
-        #            for value in b:
-        #                print(value[0])
+
                     ann.box_label(b, self.model.names[int(c)])
                     if len(closeCones) < 2:
                         
