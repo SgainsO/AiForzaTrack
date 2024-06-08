@@ -7,25 +7,26 @@ import pyautogui
 
 class ForzaGame():
     def __init__(self):
-        pyautogui.getWindowsWithTitle("Forza Horizon 5")[0].activate()
         print("Please navigate to the EventLab Course Creater before we began")
         self.centerTensor = [802, 600, 787, 820]  # will use Y to See when the cones are behind
         self.vision = Vision()
+        
         self.points = 0
         self.falseAlerts = 0
+
+        self.distanceY = -2999
+        self.distanceX = -2999
 
         self.stop_timer = threading.Event()
         self.timerFinished = threading.Event()
         self.timeOut = threading.Event()
 
 #        endTime = threading.Thread(target=self.timer, args=[60])  #TIME FOR AUTO END
-        mainControls = threading.Thread(target=self.MainGame)
 
-        mainControls.start()
 #        endTime.start()
         #MainGame.start()
     #    self.MainGame()
-        self.vision.twoClosestCones()
+     #   self.vision.twoClosestCones()
         print("Vision Stopped")
 
     def timer(self, duration):
@@ -49,12 +50,6 @@ class ForzaGame():
     def Loss(self):
         self.points -= 20
         pyautogui.press('esc')
-        pyautogui.getWindowsWithTitle("ForzaGame.py - ForzaControl - Visual Studio Code")[0].activate()
-        pyautogui.press('q')
-        start_time = time.time()
-
-        while time.time() - start_time < 1:
-            pyautogui.press('q')  # Hold the 'q' key
 
     def StartNew(self):
         pyautogui.press('right')
@@ -83,11 +78,11 @@ class ForzaGame():
             runs += 1
         return True
         
-    def checkInBetween(self):
-        if len(self.vision.currentBox) == 2:
+    def checkInBetween(self, currentBox):
+        if len(currentBox) == 2:
             values = []
             for index, box in enumerate(self.vision.currentBox):
-                values.append(box[0].item() - self.centerTensor[0])
+                values.append((box[0].item()/1920) - (self.centerTensor[0]/1920))
                 print("Values "+ str(values))
             print(values[0] * values[1])
             if values[0] * values[1] > 0:                       #It is not inbetween 
@@ -126,22 +121,29 @@ class ForzaGame():
             return True
         pyautogui.keyUp("right")
 
-    def checkBehindHood(self):
-        if len(self.vision.currentBox) == 2:
+    def checkBehindHood(self, currentBox):
+        if len(currentBox) == 2:
             for box in self.vision.currentBox:
+                self.distanceY = (box[1].item()/1080) - (self.centerTensor[1] /1080) 
                 if box[1].item() < self.centerTensor[1]:
                     print("Behind")
+                    self.points += 5
                     return True         # The Detected Cones are behind
                 else: 
+                    self.points -= 2
                     return False
 
+        return False
+
     def checkGameUpdate(self): 
-        if self.checkBehindHood() and self.checkInBetween():
+        currentBox = self.vision.twoConesRunOnce() 
+        self.points = 0 
+        if self.checkBehindHood(currentBox) and self.checkInBetween(currentBox):
             self.points += 10
         elif len(self.vision.currentBox) == 0:
             if(self.checkNoCones):
                 if not self.lookAroundForCones():
-                    self.Win()
+                    return self.Win()
                     print("You win! " + str(self.points) + " points")
                 else:
                     self.points -= 15
@@ -151,4 +153,3 @@ class ForzaGame():
             
 
 #Vision().ReturnLabeledVideo()
-ForzaGame()

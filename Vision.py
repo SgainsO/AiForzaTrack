@@ -76,6 +76,7 @@ class Vision():
                     biggest.append(b)
         
         self.currentBox = biggest
+        return biggest
         print(self.currentBox)
 
 
