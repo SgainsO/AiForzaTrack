@@ -14,8 +14,8 @@ class ForzaGame():
         self.points = 0
         self.falseAlerts = 0
 
-        self.distanceY = -2999
-        self.distanceX = -2999
+        self.distanceY = 0
+        self.distanceX = 0
 
         self.stop_timer = threading.Event()
         self.timerFinished = threading.Event()
@@ -24,9 +24,9 @@ class ForzaGame():
 #        endTime = threading.Thread(target=self.timer, args=[60])  #TIME FOR AUTO END
 
 #        endTime.start()
-        #MainGame.start()
+   #      MainGame.start()
     #    self.MainGame()
-     #   self.vision.twoClosestCones()
+        #self.vision.twoClosestCones()
         print("Vision Stopped")
 
     def timer(self, duration):
@@ -69,19 +69,25 @@ class ForzaGame():
         print("There may not be any cones")
         runs = 0
         hits = 0
-        while runs < 1000:
-            if len(self.vision.currentBox) == 0:
+        while runs < 15:
+            print("hits:" + str(hits))
+            print("Runs:" + str(runs))
+            print( "NC" + str(self.vision.twoConesRunOnce()))
+            if len(self.vision.twoConesRunOnce()) > 0:
                 hits += 1
-            if hits == 750:
+            if hits == 1:
+                print("False Alert")
+                self.points -= 10
                 self.falseAlerts += 1
                 return False
             runs += 1
-        return True
+        return True                 # Program decieded the amount of cones = 0
         
     def checkInBetween(self, currentBox):
+        print("inbetween")
         if len(currentBox) == 2:
             values = []
-            for index, box in enumerate(self.vision.currentBox):
+            for index, box in enumerate(currentBox):
                 values.append((box[0].item()/1920) - (self.centerTensor[0]/1920))
                 print("Values "+ str(values))
             print(values[0] * values[1])
@@ -94,40 +100,80 @@ class ForzaGame():
             
     def CheckConeInScene(self):
         if(len(self.vision.currentBox) != 0):
-            return False
-        else:
             return True
+        else:
+            return False
     
+    def releaseArrowKey(self):
+        options = ["top", "left", "right", "up"]
+        for ops in options:
+            pyautogui.keyUp(ops)
 
     
     def lookAroundForCones(self):
-        print("You may have won: looking now")
+        print("checking for cones")
         pyautogui.keyDown("top")
         pyautogui.keyDown("left")
-        if not self.CheckConeInScene():
+        if self.CheckConeInScene():
+            self.releaseArrowKey()
+            print("cones fount stage 1")
             return True
         pyautogui.keyUp("top")
         pyautogui.keyDown("down")
-        if not self.CheckConeInScene():
+        time.sleep(.15)
+        if self.CheckConeInScene():
+            print("cones fount stage 1")
+            self.releaseArrowKey()
             return True
         pyautogui.keyUp("left")
-        if not self.CheckConeInScene():
+        time.sleep(.15)
+        if self.CheckConeInScene():
+            print("cones fount stage 1")
+            self.releaseArrowKey()
             return True
         pyautogui.keyDown("right")
-        if not self.CheckConeInScene():
+        time.sleep(.15)        
+        if  self.CheckConeInScene():
+            print("cones fount stage 1")
+            self.releaseArrowKey()
             return True
         pyautogui.keyUp("down")    
-        if not self.CheckConeInScene():
+        time.sleep(.15)
+        if  self.CheckConeInScene():
+            self.releaseArrowKey()
             return True
         pyautogui.keyUp("right")
+        
+        return False
+    
+    def releaseControlKeys(self):
+        options = ["s", "a", "d", "w"]
+        for ops in options:
+            pyautogui.keyUp(ops)
+
+    def ResetCarPositionCheckCones(self):
+        self.releaseControlKeys()
+        pyautogui.press('esc')
+        time.sleep(.8)
+        pyautogui.press('x')
+        time.sleep(.4)
+        pyautogui.press('enter')
+        time.sleep(2.5)
+
+        if self.checkNoCones():
+            return True                 #Found no cones after rerunning
+        else:
+            return False
+
+
 
     def checkBehindHood(self, currentBox):
         if len(currentBox) == 2:
-            for box in self.vision.currentBox:
+            for box in currentBox:
                 self.distanceY = (box[1].item()/1080) - (self.centerTensor[1] /1080) 
                 if box[1].item() < self.centerTensor[1]:
                     print("Behind")
-                    self.points += 5
+                    self.points += 10
                     return True         # The Detected Cones are behind
                 else: 
                     self.points -= 2
@@ -138,18 +184,23 @@ class ForzaGame():
     def checkGameUpdate(self): 
         currentBox = self.vision.twoConesRunOnce() 
         self.points = 0 
+        print(currentBox)
+        print(str(self.falseAlerts) + " False")
         if self.checkBehindHood(currentBox) and self.checkInBetween(currentBox):
             self.points += 10
         elif len(self.vision.currentBox) == 0:
-            if(self.checkNoCones):
-                if not self.lookAroundForCones():
-                    return self.Win()
+            if(self.checkNoCones()):
+                if self.ResetCarPositionCheckCones():
                     print("You win! " + str(self.points) + " points")
+                    return True
                 else:
+                    print("we ended up finding cones after reseting")
                     self.points -= 15
-        elif self.falseAlerts == 5:
+        elif self.falseAlerts == 8:
             print("You Lose! " + str(self.points) + " points")
-            self.Loss()
+            return True
+        if self.checkBehindHood(currentBox) or self.checkInBetween(currentBox):
+            self.falseAlerts == 0
+
             
 
-#Vision().ReturnLabeledVideo()

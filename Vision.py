@@ -74,10 +74,10 @@ class Vision():
 
                 if len(biggest) < 2:
                     biggest.append(b)
-        
         self.currentBox = biggest
+        print(biggest)
         return biggest
-        print(self.currentBox)
+
 
 
     
