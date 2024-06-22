@@ -12,10 +12,13 @@ class ForzaGame():
         self.vision = Vision()
         
         self.points = 0
+        self.consistenCheckFails = 0 
         self.falseAlerts = 0
 
         self.distanceY = 0
         self.distanceX = 0
+        
+
 
         self.stop_timer = threading.Event()
         self.timerFinished = threading.Event()
@@ -69,7 +72,7 @@ class ForzaGame():
         print("There may not be any cones")
         runs = 0
         hits = 0
-        while runs < 15:
+        while runs < 5:
             print("hits:" + str(hits))
             print("Runs:" + str(runs))
             print( "NC" + str(self.vision.twoConesRunOnce()))
@@ -90,9 +93,9 @@ class ForzaGame():
             for index, box in enumerate(currentBox):
                 values.append((box[0].item()/1920) - (self.centerTensor[0]/1920))
                 print("Values "+ str(values))
-            print(values[0] * values[1])
-            if values[0] * values[1] > 0:                       #It is not inbetween 
-                self.points -= 5
+            self.distanceX = values[0] * values[1]
+            if self.distanceX > 0:                       #It is not inbetween 
+                self.points -= 30
                 return False
             else:
     #            print("In between!!")
@@ -106,6 +109,7 @@ class ForzaGame():
     
     def releaseArrowKey(self):
         options = ["top", "left", "right", "up"]
+        print("Releasing arrow keys")
         for ops in options:
             pyautogui.keyUp(ops)
 
@@ -148,6 +152,7 @@ class ForzaGame():
     
     def releaseControlKeys(self):
         options = ["s", "a", "d", "w"]
+        print("release car keys")
         for ops in options:
             pyautogui.keyUp(ops)
 
@@ -170,13 +175,11 @@ class ForzaGame():
     def checkBehindHood(self, currentBox):
         if len(currentBox) == 2:
             for box in currentBox:
-                self.distanceY = (box[1].item()/1080) - (self.centerTensor[1] /1080) 
+                self.distanceY = (box[1].item()/1080) - (self.centerTensor[1] /1080)     # Postiive = cone ahead, negatie = behind 
                 if box[1].item() < self.centerTensor[1]:
                     print("Behind")
-                    self.points += 10
                     return True         # The Detected Cones are behind
                 else: 
-                    self.points -= 2
                     return False
 
         return False
@@ -187,20 +190,25 @@ class ForzaGame():
         print(currentBox)
         print(str(self.falseAlerts) + " False")
         if self.checkBehindHood(currentBox) and self.checkInBetween(currentBox):
-            self.points += 10
+            self.points += 150
         elif len(self.vision.currentBox) == 0:
             if(self.checkNoCones()):
-                if self.ResetCarPositionCheckCones():
-                    print("You win! " + str(self.points) + " points")
-                    return True
-                else:
-                    print("we ended up finding cones after reseting")
-                    self.points -= 15
+                self.consistenCheckFails += 1
+                if self.consistenCheckFails == 5:  
+                    if self.ResetCarPositionCheckCones():
+                        print("You win! " + str(self.points) + " points")
+                        return True
+                    else:
+                        print("we ended up finding cones after reseting")
+                        self.points -= 15
+                    self.consistenCheckFails = 0
         elif self.falseAlerts == 8:
             print("You Lose! " + str(self.points) + " points")
             return True
-        if self.checkBehindHood(currentBox) or self.checkInBetween(currentBox):
-            self.falseAlerts == 0
+        
+
+
+
 
             
 
