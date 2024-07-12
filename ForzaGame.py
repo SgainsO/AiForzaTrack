@@ -72,16 +72,17 @@ class ForzaGame():
         print("There may not be any cones")
         runs = 0
         hits = 0
-        while runs < 5:
+        while runs < 3:                 # amount of times cones are checked
             print("hits:" + str(hits))
             print("Runs:" + str(runs))
             print( "NC" + str(self.vision.twoConesRunOnce()))
             if len(self.vision.twoConesRunOnce()) > 0:
                 hits += 1
-            if hits == 1:
+            if hits == 1:                   #We were able to find a cone
                 print("False Alert")
                 self.points -= 10
                 self.falseAlerts += 1
+                self.consistenCheckFails = 0 # Set the amount of cone checls failed in a row to zero
                 return False
             runs += 1
         return True                 # Program decieded the amount of cones = 0
@@ -157,13 +158,15 @@ class ForzaGame():
             pyautogui.keyUp(ops)
 
     def ResetCarPositionCheckCones(self):
+        print("RESETING CAR POSITION")
         self.releaseControlKeys()
         pyautogui.press('esc')
         time.sleep(.8)
+        print("reset X pressed")
         pyautogui.press('x')
         time.sleep(.4)
         pyautogui.press('enter')
-        time.sleep(2.5)
+        time.sleep(1.5)
 
         if self.checkNoCones():
             return True                 #Found no cones after rerunning
@@ -194,7 +197,7 @@ class ForzaGame():
         elif len(self.vision.currentBox) == 0:
             if(self.checkNoCones()):
                 self.consistenCheckFails += 1
-                if self.consistenCheckFails == 5:  
+                if self.consistenCheckFails == 4:  
                     if self.ResetCarPositionCheckCones():
                         print("You win! " + str(self.points) + " points")
                         return True
